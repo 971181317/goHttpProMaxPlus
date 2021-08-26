@@ -14,12 +14,23 @@ type HttpClient struct {
 	AfterResponseCreate AspectModel
 }
 
-func NewClientUserConf(client *http.Client) *HttpClient {
-	return NewUserClientWithUserConfAndAspect(client, nil, nil, nil, nil, nil)
+// DefaultClient 使用它可以获取到一个默认的Client
+var DefaultClient = &HttpClient{
+	http.DefaultClient,
+	nil,
+	nil,
+	nil,
+	nil,
+	nil,
 }
 
-func NewClient() *HttpClient {
-	return NewUserClientWithUserConfAndAspect(http.DefaultClient, nil, nil, nil, nil, nil)
+func GetDefaultClient() *HttpClient {
+	return DefaultClient
+}
+
+// NewClientUserConf 用 http.Client 设置一个client
+func NewClientUserConf(client *http.Client) *HttpClient {
+	return NewUserClientWithUserConfAndAspect(client, nil, nil, nil, nil, nil)
 }
 
 func NewUserClientWithUserConfAndAspect(client *http.Client,

@@ -14,30 +14,32 @@ import (
 type HttpMethod string
 
 const (
-	GET  HttpMethod = "GET"
-	POST HttpMethod = "POST"
+	GET     HttpMethod = http.MethodGet
+	POST    HttpMethod = http.MethodPost
+	DELETE  HttpMethod = http.MethodDelete
+	PUT     HttpMethod = http.MethodPut
+	PATCH   HttpMethod = http.MethodPatch
+	OPTIONS HttpMethod = http.MethodOptions
 )
 
 func (hm HttpMethod) String() string {
 	switch hm {
-	case GET:
-		return "GET"
-	case POST:
-		return "POST"
+	case GET, POST, DELETE, PUT, PATCH, OPTIONS:
+		return string(hm)
 	default:
-		return "GET"
+		return "invalid http method"
 	}
 }
 
 type HttpRequest struct {
-	Method    HttpMethod
-	URL       *url.URL
-	Cookies   map[string]string
-	Headers   map[string]string
-	Params    map[string]string //覆盖URL中的RawQuery
-	FormsBody map[string]string
-	JsonBody  *sj.Json
-	FileBody  *os.File
+	Method  HttpMethod
+	URL     *url.URL
+	Cookies map[string]string
+	Headers map[string]string
+	Params  map[string]string //追加URL中的RawQuery
+	Forms   map[string]string
+	Json    *sj.Json
+	File    *os.File
 }
 
 func (hr *HttpRequest) AppendCookie(name, value string) *HttpRequest {
@@ -138,7 +140,7 @@ func (hr *HttpRequest) ReplaceHeaders(header map[string]string) *HttpRequest {
 }
 
 func (hr *HttpRequest) AppendForm(name, value string) *HttpRequest {
-	hr.FormsBody[name] = value
+	hr.Forms[name] = value
 	return hr
 }
 
@@ -150,16 +152,16 @@ func (hr *HttpRequest) AppendForms(forms map[string]string) *HttpRequest {
 }
 
 func (hr *HttpRequest) GetForm(name string) string {
-	return hr.FormsBody[name]
+	return hr.Forms[name]
 }
 
 func (hr *HttpRequest) DelForm(name string) *HttpRequest {
-	delete(hr.FormsBody, name)
+	delete(hr.Forms, name)
 	return hr
 }
 
 func (hr *HttpRequest) ClearAllForm() *HttpRequest {
-	hr.FormsBody = map[string]string{}
+	hr.Forms = map[string]string{}
 	return hr
 }
 
@@ -170,43 +172,43 @@ func (hr *HttpRequest) ReplaceForms(header map[string]string) *HttpRequest {
 }
 
 func (hr *HttpRequest) SetJsonBodySJ(json *sj.Json) *HttpRequest {
-	hr.JsonBody = json
+	hr.Json = json
 	return hr
 }
 
 func (hr *HttpRequest) SetJsonBodyStr(json string) *HttpRequest {
 	newJson, err := sj.NewJson([]byte(json))
 	if err != nil {
-		hr.JsonBody = sj.New()
+		hr.Json = sj.New()
 	} else {
-		hr.JsonBody = newJson
+		hr.Json = newJson
 	}
 	return hr
 }
 
 func (hr *HttpRequest) SetFileBody(file *os.File) *HttpRequest {
-	hr.FileBody = file
+	hr.File = file
 	return hr
 }
 
 func (hr *HttpRequest) SetFileBodyPath(path string) *HttpRequest {
 	file, err := os.Open(path)
 	if err != nil {
-		hr.FileBody = nil
+		hr.File = nil
 	} else {
-		hr.FileBody = file
+		hr.File = file
 	}
 	return hr
 }
 
 func GetHttpRequest(method HttpMethod, url *url.URL) *HttpRequest {
 	return &HttpRequest{
-		Method:    method,
-		URL:       url,
-		Cookies:   map[string]string{},
-		Headers:   map[string]string{},
-		Params:    map[string]string{},
-		FormsBody: map[string]string{},
+		Method:  method,
+		URL:     url,
+		Cookies: map[string]string{},
+		Headers: map[string]string{},
+		Params:  map[string]string{},
+		Forms:   map[string]string{},
 	}
 }
 
@@ -217,16 +219,16 @@ func BuildRequest(hr *HttpRequest) (*http.Request, error) {
 		hr.URL.RawQuery = buildParams(hr.Params)
 	}
 
-	if hr.FormsBody != nil {
+	if hr.Forms != nil {
 		body = strings.NewReader(buildParams(hr.Params))
-	} else if hr.JsonBody != nil {
-		json, err := hr.JsonBody.MarshalJSON()
+	} else if hr.Json != nil {
+		json, err := hr.Json.MarshalJSON()
 		if err != nil {
 			return nil, errors.New("json err, msg: " + err.Error())
 		}
 		body = bytes.NewReader(json)
-	} else if hr.FileBody != nil {
-		body = hr.FileBody
+	} else if hr.File != nil {
+		body = hr.File
 	} else {
 		body = nil
 	}
