@@ -1,9 +1,7 @@
 package goHttpProMaxPlus
 
 import (
-	"bytes"
 	"errors"
-	sj "github.com/bitly/go-simplejson"
 	"io"
 	"net/http"
 	"net/url"
@@ -32,14 +30,16 @@ func (hm HttpMethod) String() string {
 }
 
 type HttpRequest struct {
-	Method  HttpMethod
-	URL     *url.URL
-	Cookies map[string]string
-	Headers map[string]string
-	Params  map[string]string //追加URL中的RawQuery
-	Forms   map[string]string
-	Json    *sj.Json
-	File    *os.File
+	Method     HttpMethod
+	URL        string
+	Cookies    map[string]string
+	Headers    map[string]string
+	Params     map[string]string //追加URL中的RawQuery
+	Forms      map[string]string
+	Json       *string
+	Xml        *string
+	File       *os.File
+	ReaderBody *io.Reader
 }
 
 func (hr *HttpRequest) AppendCookie(name, value string) *HttpRequest {
@@ -171,18 +171,8 @@ func (hr *HttpRequest) ReplaceForms(header map[string]string) *HttpRequest {
 	return hr
 }
 
-func (hr *HttpRequest) SetJsonBodySJ(json *sj.Json) *HttpRequest {
-	hr.Json = json
-	return hr
-}
-
-func (hr *HttpRequest) SetJsonBodyStr(json string) *HttpRequest {
-	newJson, err := sj.NewJson([]byte(json))
-	if err != nil {
-		hr.Json = sj.New()
-	} else {
-		hr.Json = newJson
-	}
+func (hr *HttpRequest) SetJsonBody(json string) *HttpRequest {
+	hr.Json = &json
 	return hr
 }
 
@@ -201,10 +191,24 @@ func (hr *HttpRequest) SetFileBodyPath(path string) *HttpRequest {
 	return hr
 }
 
-func GetHttpRequest(method HttpMethod, url *url.URL) *HttpRequest {
+func (hr *HttpRequest) SetMethod(method HttpMethod) *HttpRequest {
+	hr.Method = method
+	return hr
+}
+
+func (hr *HttpRequest) SetURL(URL string) *HttpRequest {
+	hr.URL = URL
+	return hr
+}
+
+func (hr *HttpRequest) SetReaderBody(reader *io.Reader) *HttpRequest {
+	hr.ReaderBody = reader
+	return hr
+}
+
+func NewHttpRequest() *HttpRequest {
 	return &HttpRequest{
-		Method:  method,
-		URL:     url,
+		Method:  GET,
 		Cookies: map[string]string{},
 		Headers: map[string]string{},
 		Params:  map[string]string{},
@@ -212,36 +216,61 @@ func GetHttpRequest(method HttpMethod, url *url.URL) *HttpRequest {
 	}
 }
 
-func BuildRequest(hr *HttpRequest) (*http.Request, error) {
-	var body io.Reader
-
-	if hr.Params != nil {
-		hr.URL.RawQuery = buildParams(hr.Params)
+func (hr *HttpRequest) BuildRequest() (*http.Request, error) {
+	parseUrl, err := url.Parse(hr.URL)
+	if err != nil {
+		return nil, errors.New("url parse err, msg: " + err.Error())
 	}
 
+	// append params
+	if hr.Params != nil {
+		parseUrl.RawQuery = parseParams(hr.Params)
+	}
+
+	// create body
+	var body io.Reader
 	if hr.Forms != nil {
-		body = strings.NewReader(buildParams(hr.Params))
+		body = strings.NewReader(parseParams(hr.Forms))
 	} else if hr.Json != nil {
-		json, err := hr.Json.MarshalJSON()
-		if err != nil {
-			return nil, errors.New("json err, msg: " + err.Error())
-		}
-		body = bytes.NewReader(json)
+		body = strings.NewReader(*hr.Json)
+	} else if hr.Xml != nil {
+		body = strings.NewReader(*hr.Xml)
 	} else if hr.File != nil {
 		body = hr.File
+	} else if hr.ReaderBody != nil {
+		body = *hr.ReaderBody
 	} else {
 		body = nil
 	}
 
-	request, err := http.NewRequest(hr.Method.String(), hr.URL.String(), body)
+	request, err := http.NewRequest(hr.Method.String(), parseUrl.String(), body)
 	if err != nil {
 		return nil, errors.New("build request err, msg: " + err.Error())
 	}
 
+	// append header and cookie
+	parseHeader(hr.Headers, request)
+	parseCookie(hr.Cookies, request)
+
 	return request, nil
 }
 
-func buildParams(param map[string]string) string {
+func parseCookie(cookies map[string]string, request *http.Request) {
+	for k, v := range cookies {
+		request.AddCookie(&http.Cookie{
+			Name:  k,
+			Value: v,
+		})
+	}
+}
+
+func parseHeader(header map[string]string, request *http.Request) {
+	for k, v := range header {
+		request.Header.Set(k, v)
+	}
+}
+
+func parseParams(param map[string]string) string {
 	var buff strings.Builder
 
 	for k, v := range param {
