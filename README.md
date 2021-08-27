@@ -1,8 +1,12 @@
 # goHttpProMaxPlus
 
-Go quickly request http. 
+Go quickly request http and Support for AOP
 
-go快速请求Http
+go快速请求Http, 同时支持AOP
+
+> 要不是公司用go，我才不会写他呢！！！
+
+以下英语均为机翻
 
 ## Import dependence 导入依赖
 
@@ -63,3 +67,125 @@ result
 {"msg":"This is a GET method"}
 {"msg":"This is a POST method"}
 ```
+
+It's pretty easy, right?
+
+芜湖，起飞（老师，老师，我已经会get和post了）！！！
+
+But what if you want to use `Header`, `Cookie`, or `Form`?  
+
+但如果想使用`Header`，`Cookie`或者`Form`怎么办呢？
+
+```go
+// cookie, header, form: map[string]string
+// data: *io.Reader
+GetDefaultClient().GetWithCookieAndHeader(url, cookie, header)
+GetDefaultClient().PostWithForm(url, form)
+GetDefaultClient().PostWithCookieHeaderAndForm(url, cookie, header, form)
+GetDefaultClient().PostWithIoData(url sting, data)
+GetDefaultClient().PostWithCookieHeaderAndIoData(url, cookie, header, data)
+```
+
+## AOP
+
+**5 Aspects:**
+
+1. BeforeClientBuild
+2. AfterClientBuild
+3. BeforeRequestBuild 
+4. AfterRequestBuild
+5. AfterResponseCreate
+
+## Custom HTTP request 自定义请求
+
+**4 Steps：**
+
+1. create client
+
+```go
+// AspectModel 切片模组
+type AspectModel func(...interface{})
+
+// HttpClient A client send request
+type HttpClient struct {
+	c                   *http.Client
+	BeforeClientBuild   AspectModel
+	AfterClientBuild    AspectModel
+	BeforeRequestBuild  AspectModel
+	AfterRequestBuild   AspectModel
+	AfterResponseCreate AspectModel
+	AspectArgs          []interface{} // Only the most recent assignment will be kept
+}
+```
+
+create it and use aspect
+
+```go
+// This method execute BeforeClientBuild and AfterClientBuild.
+func NewClientX(client *http.Client,
+	beforeClientBuild, afterClientBuild, beforeRequestBuild, afterRequestBuild, afterResponseCreate AspectModel,
+	args ...interface{}) *HttpClient
+```
+
+2. create request
+
+```go
+// Forms > Json > Xml > File > ReaderBody
+type HttpRequest struct {
+	Method     HttpMethod
+	URL        string
+	Cookies    map[string]string
+	Headers    map[string]string
+	Queries    map[string]string
+	Forms      map[string]string
+	Json       *string
+	Xml        *string
+	File       *os.File
+	ReaderBody *io.Reader
+}
+```
+
+Two types of assignment
+
+```go
+// 1. chain
+req := NewHttpRequest().
+		SetMethod(POST).
+		SetURL("http://localhost:8080").
+		AppendHeader("header", "headerValue").
+		AppendCookie("cookie", "cookieValue").
+		AppendForm("form", "formValue").
+		AppendQuery("query", "queryValue")
+
+// 2.
+req := &HttpRequest{
+    Method     HttpMethod
+	URL        "http://localhost:8080"
+	Cookies    ...
+	Headers    ...
+	Queries    ...
+	Forms      ...
+    ...
+}
+```
+
+3. do request
+
+```go
+resp, err := client.Do(req)
+```
+
+4. get request body
+
+```go
+type HttpResponse struct {
+	resp    *http.Response
+	Headers map[string]string
+	body    io.ReadCloser
+	bodyStr *string
+}
+
+func (hr *HttpResponse) ParseJson(v interface{})
+func (hr *HttpResponse) GetRespStr() string
+```
+
