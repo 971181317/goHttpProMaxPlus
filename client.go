@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// HttpClient 请求http的客户端
+// HttpClient A client send request
 type HttpClient struct {
 	c                   *http.Client
 	BeforeClientBuild   AspectModel
@@ -46,6 +46,7 @@ func (client HttpClient) Do(req *HttpRequest) (*HttpResponse, error) {
 	}, nil
 }
 
+// defaultAspect Default aspect
 func defaultAspect(...interface{}) {}
 
 var DefaultClient = &HttpClient{
