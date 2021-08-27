@@ -1,4 +1,4 @@
-package demo
+package demo_test
 
 import (
 	"fmt"
@@ -6,20 +6,30 @@ import (
 	"testing"
 )
 
+func TestQuickStart(t *testing.T) {
+	resp, err := GetDefaultClient().Get("http://localhost:8080")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(resp.GetRespStr())
+
+	resp, err = GetDefaultClient().Post("http://localhost:8080")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(resp.GetRespStr())
+}
+
 func Test(t *testing.T) {
-	request := NewHttpRequest().SetURL("www.baidu.com").
-		AppendHeaders(map[string]string{
-			"header 1": "headerValue1",
-			"header 2": "headerValue1"}).
-		AppendCookies(map[string]string{
-			"Cookie 1": "cookieValue1",
-			"Cookie 2": "cookieValue1"}).
-		AppendForms(map[string]string{
-			"Form 1": "formValue1",
-			"Form 2": "formValue1"}).
-		AppendParams(map[string]string{
-			"Params 1": "paramValue1",
-			"Params 2": "paramValue1",
-		})
-	fmt.Println(request.BuildRequest())
+	req := NewHttpRequest().
+		SetMethod(POST).
+		SetURL("http://localhost:8080").
+		AppendHeader("header", "headerValue").
+		AppendCookie("cookie", "cookieValue").
+		AppendForm("form", "formValue").
+		AppendQuery("query", "queryValue")
+
+	resp, _ := GetDefaultClient().Do(req)
+
+	fmt.Println(resp.GetRespStr())
 }

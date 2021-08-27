@@ -2,9 +2,13 @@ package goHttpProMaxPlus
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"time"
 )
+
+// AspectModel 切片模组
+type AspectModel func(...interface{})
 
 // HttpClient A client send request
 type HttpClient struct {
@@ -19,6 +23,50 @@ type HttpClient struct {
 
 func (client HttpClient) GetAspectArgs() []interface{} {
 	return client.AspectArgs
+}
+
+func (client HttpClient) Get(url string) (*HttpResponse, error) {
+	return client.GetWithCookieAndHeader(url, nil, nil)
+}
+
+func (client HttpClient) GetWithCookieAndHeader(url string, cookie, header map[string]string) (*HttpResponse, error) {
+	return client.Do(&HttpRequest{
+		Method: GET,
+		URL: url,
+		Headers: header,
+		Cookies: cookie,
+	})
+}
+
+func (client HttpClient) Post(url string) (*HttpResponse, error) {
+	return client.PostWithCookieHeaderAndForm(url, nil, nil, nil)
+}
+
+func (client HttpClient) PostWithForm(url string, form map[string]string) (*HttpResponse, error) {
+	return client.PostWithCookieHeaderAndForm(url, nil, nil, form)
+}
+
+func (client HttpClient) PostWithCookieHeaderAndForm(url string, cookie, header, form map[string]string) (*HttpResponse, error) {
+	return client.Do(&HttpRequest{
+		Method: POST,
+		URL: url,
+		Headers: header,
+		Cookies: cookie,
+		Forms: form,
+	})
+}
+
+func (client HttpClient) PostWithIoData(url string, data *io.Reader) (*HttpResponse, error) {
+	return client.PostWithCookieHeaderAndIoData(url, nil, nil, data)
+}
+
+func (client HttpClient) PostWithCookieHeaderAndIoData(url string, cookie, header map[string]string, data *io.Reader) (*HttpResponse, error) {
+	return client.Do(&HttpRequest{
+		URL: url,
+		Headers: header,
+		Cookies: cookie,
+		ReaderBody: data,
+	})
 }
 
 // Do run with Aspect
@@ -37,13 +85,11 @@ func (client HttpClient) Do(req *HttpRequest) (*HttpResponse, error) {
 		return nil, errors.New("request err, msg : " + err.Error())
 	}
 
-	// todo 处理response
+	resp := CreateResponse(_resp)
 
 	client.AfterResponseCreate(client.AspectArgs)
 
-	return &HttpResponse{
-		res: _resp,
-	}, nil
+	return resp, nil
 }
 
 // defaultAspect Default aspect

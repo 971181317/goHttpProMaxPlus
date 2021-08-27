@@ -31,14 +31,45 @@ func (hm HttpMethod) String() string {
 
 type HttpRequest struct {
 	Method     HttpMethod
+
+	// Queries will overwrite the queries in the URL
+	// Queries 会覆盖 URL 中的参数
 	URL        string
+
 	Cookies    map[string]string
 	Headers    map[string]string
-	Params     map[string]string //追加URL中的RawQuery
+
+	// Queries will overwrite the queries in the URL
+	// Queries 会覆盖 URL 中的参数
+	Queries    map[string]string
+
+	// When creating the HttpRequest, we have already added "Content-Type: application/x-www-form-urlencoded" for you .
+	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type: application/x-www-form-urlencoded
+	// If you want to modify, please add "Content-Type" sauce to the Headers
+	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
+	// The HTTP client ignores Form and uses Body instead.
 	Forms      map[string]string
+
+	// When creating the HttpRequest, we have already added "Content-Type: application/json" for you .
+	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type
+	// If you want to modify, please add "Content-Type" sauce to the Headers
+	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
 	Json       *string
+
+	// When creating the HttpRequest, we have already added "Content-Type: text/xml" for you .
+	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type: application/x-www-form-urlencoded
+	// If you want to modify, please add "Content-Type" sauce to the Headers
+	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
 	Xml        *string
+
+	// When creating the HttpRequest, we have already added "Content-Type: multipart/form-data" for you .
+	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type
+	// If you want to modify, please add "Content-Type: " sauce to the Headers
+	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
 	File       *os.File
+
+	// Please add "Content-Type" sauce to the Headers
+	// 请在 Headers 中加入“Content-Type”
 	ReaderBody *io.Reader
 }
 
@@ -75,35 +106,35 @@ func (hr *HttpRequest) ReplaceCookies(cookies map[string]string) {
 	}
 }
 
-func (hr *HttpRequest) AppendParam(name, value string) *HttpRequest {
-	hr.Params[name] = value
+func (hr *HttpRequest) AppendQuery(name, value string) *HttpRequest {
+	hr.Queries[name] = value
 	return hr
 }
 
-func (hr *HttpRequest) AppendParams(params map[string]string) *HttpRequest {
+func (hr *HttpRequest) AppendQueries(params map[string]string) *HttpRequest {
 	for k, v := range params {
-		hr.AppendParam(k, v)
+		hr.AppendQuery(k, v)
 	}
 	return hr
 }
 
-func (hr *HttpRequest) GetParam(name string) string {
-	return hr.Params[name]
+func (hr *HttpRequest) GetQuery(name string) string {
+	return hr.Queries[name]
 }
 
-func (hr *HttpRequest) DelParam(name string) *HttpRequest {
-	delete(hr.Params, name)
+func (hr *HttpRequest) DelQuery(name string) *HttpRequest {
+	delete(hr.Queries, name)
 	return hr
 }
 
-func (hr *HttpRequest) ClearAllParam() *HttpRequest {
-	hr.Params = map[string]string{}
+func (hr *HttpRequest) ClearAllQuery() *HttpRequest {
+	hr.Queries = map[string]string{}
 	return hr
 }
 
-func (hr *HttpRequest) ReplaceParams(param map[string]string) *HttpRequest {
-	hr.ClearAllParam()
-	hr.AppendParams(param)
+func (hr *HttpRequest) ReplaceQuery(param map[string]string) *HttpRequest {
+	hr.ClearAllQuery()
+	hr.AppendQueries(param)
 	return hr
 }
 
@@ -211,7 +242,7 @@ func NewHttpRequest() *HttpRequest {
 		Method:  GET,
 		Cookies: map[string]string{},
 		Headers: map[string]string{},
-		Params:  map[string]string{},
+		Queries: map[string]string{},
 		Forms:   map[string]string{},
 	}
 }
@@ -223,20 +254,40 @@ func (hr *HttpRequest) BuildRequest() (*http.Request, error) {
 	}
 
 	// append params
-	if hr.Params != nil {
-		parseUrl.RawQuery = parseParams(hr.Params)
+	if hr.Queries != nil {
+		parseUrl.RawQuery = parseParams(hr.Queries)
 	}
 
 	// create body
 	var body io.Reader
 	if hr.Forms != nil {
 		body = strings.NewReader(parseParams(hr.Forms))
+
+		if  _, ok := hr.Headers["Content-Type"]; !ok {
+			hr.Headers["Content-Type"] = "application/x-www-form-urlencoded"
+		}
+
 	} else if hr.Json != nil {
 		body = strings.NewReader(*hr.Json)
+
+		if  _, ok := hr.Headers["Content-Type"]; !ok {
+			hr.Headers["Content-Type"] = "application/json"
+		}
+
 	} else if hr.Xml != nil {
 		body = strings.NewReader(*hr.Xml)
+
+		if  _, ok := hr.Headers["Content-Type"]; !ok {
+			hr.Headers["Content-Type"] = "text/xml"
+		}
+
 	} else if hr.File != nil {
 		body = hr.File
+
+		if  _, ok := hr.Headers["Content-Type"]; !ok {
+			hr.Headers["Content-Type"] = "multipart/form-data"
+		}
+
 	} else if hr.ReaderBody != nil {
 		body = *hr.ReaderBody
 	} else {
@@ -250,6 +301,7 @@ func (hr *HttpRequest) BuildRequest() (*http.Request, error) {
 
 	// append header and cookie
 	parseHeader(hr.Headers, request)
+
 	parseCookie(hr.Cookies, request)
 
 	return request, nil

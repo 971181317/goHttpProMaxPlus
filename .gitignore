@@ -15,3 +15,5 @@
 # vendor/
 
 .idea
+
+my_test/*
