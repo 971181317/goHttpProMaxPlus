@@ -29,6 +29,8 @@ func (hm HttpMethod) String() string {
 	}
 }
 
+// HttpRequest
+// Forms > Json > Xml > File > ReaderBody
 type HttpRequest struct {
 	Method     HttpMethod
 

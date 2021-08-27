@@ -10,7 +10,7 @@ import (
 type HttpResponse struct {
 	resp    *http.Response
 	Headers map[string]string
-	body    io.ReadCloser
+	Body    io.ReadCloser
 	bodyStr *string
 }
 
@@ -43,9 +43,9 @@ func CreateResponse(resp *http.Response) *HttpResponse{
 }
 
 func (hr *HttpResponse) setBodyStr() {
-	defer hr.body.Close()
+	defer hr.Body.Close()
 
-	body, _ := ioutil.ReadAll(hr.body)
+	body, _ := ioutil.ReadAll(hr.Body)
 
 	_s := string(body)
 	hr.bodyStr = &_s
@@ -61,5 +61,5 @@ func (hr *HttpResponse) parseHeader() {
 }
 
 func (hr *HttpResponse) parseBody() {
-	hr.body = hr.resp.Body
+	hr.Body = hr.resp.Body
 }
