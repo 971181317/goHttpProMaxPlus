@@ -8,7 +8,7 @@ import (
 )
 
 // AspectModel 切片模组
-type AspectModel func(...interface{})
+type AspectModel func(*HttpRequest, *HttpResponse, ...interface{})
 
 // HttpClient A client send request
 type HttpClient struct {
@@ -31,8 +31,8 @@ func (client HttpClient) Get(url string) (*HttpResponse, error) {
 
 func (client HttpClient) GetWithCookieAndHeader(url string, cookie, header map[string]string) (*HttpResponse, error) {
 	return client.Do(&HttpRequest{
-		Method: GET,
-		URL: url,
+		Method:  GET,
+		URL:     url,
 		Headers: header,
 		Cookies: cookie,
 	})
@@ -48,11 +48,11 @@ func (client HttpClient) PostWithForm(url string, form map[string]string) (*Http
 
 func (client HttpClient) PostWithCookieHeaderAndForm(url string, cookie, header, form map[string]string) (*HttpResponse, error) {
 	return client.Do(&HttpRequest{
-		Method: POST,
-		URL: url,
+		Method:  POST,
+		URL:     url,
 		Headers: header,
 		Cookies: cookie,
-		Forms: form,
+		Forms:   form,
 	})
 }
 
@@ -62,23 +62,23 @@ func (client HttpClient) PostWithIoData(url string, data *io.Reader) (*HttpRespo
 
 func (client HttpClient) PostWithCookieHeaderAndIoData(url string, cookie, header map[string]string, data *io.Reader) (*HttpResponse, error) {
 	return client.Do(&HttpRequest{
-		URL: url,
-		Headers: header,
-		Cookies: cookie,
+		URL:        url,
+		Headers:    header,
+		Cookies:    cookie,
 		ReaderBody: data,
 	})
 }
 
 // Do run with Aspect
 func (client HttpClient) Do(req *HttpRequest) (*HttpResponse, error) {
-	client.BeforeRequestBuild(client.AspectArgs)
+	client.BeforeRequestBuild(req, nil, client.AspectArgs)
 
 	_req, err := req.BuildRequest()
 	if err != nil {
 		return nil, err
 	}
 
-	client.AfterRequestBuild(client.AspectArgs)
+	client.AfterRequestBuild(req, nil, client.AspectArgs)
 
 	_resp, err := client.c.Do(_req)
 	if err != nil {
@@ -87,13 +87,13 @@ func (client HttpClient) Do(req *HttpRequest) (*HttpResponse, error) {
 
 	resp := CreateResponse(_resp)
 
-	client.AfterResponseCreate(client.AspectArgs)
+	client.AfterResponseCreate(req, resp, client.AspectArgs)
 
 	return resp, nil
 }
 
 // defaultAspect Default aspect
-func defaultAspect(...interface{}) {}
+func defaultAspect(*HttpRequest, *HttpResponse, ...interface{}) {}
 
 var DefaultClient = &HttpClient{
 	&http.Client{Timeout: 5 * time.Second},
@@ -125,7 +125,7 @@ func NewClient(client *http.Client) *HttpClient {
 func NewClientX(client *http.Client,
 	beforeClientBuild, afterClientBuild, beforeRequestBuild, afterRequestBuild, afterResponseCreate AspectModel,
 	args ...interface{}) *HttpClient {
-	beforeRequestBuild(args)
+	beforeRequestBuild(nil, nil, args)
 
 	hc := &HttpClient{
 		c:                   client,
@@ -137,7 +137,7 @@ func NewClientX(client *http.Client,
 		AspectArgs:          args,
 	}
 
-	afterRequestBuild(args)
+	afterRequestBuild(nil, nil, args)
 
 	return hc
 }
