@@ -1,6 +1,7 @@
 package goHttpProMaxPlus
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -209,6 +210,15 @@ func (hr *HttpRequest) SetJsonBody(json string) *HttpRequest {
 	return hr
 }
 
+func (hr *HttpRequest) SetJsonBodyStruct(v interface{}) *HttpRequest {
+	marshal, err := json.Marshal(v)
+	if err != nil {
+		return hr
+	}
+	hr.Json = strPrt(string(marshal))
+	return hr
+}
+
 func (hr *HttpRequest) SetFileBody(file *os.File) *HttpRequest {
 	hr.File = file
 	return hr
@@ -337,4 +347,8 @@ func parseParams(param map[string]string) string {
 	}
 
 	return buff.String()
+}
+
+func strPrt(s string) *string {
+	return &s
 }
