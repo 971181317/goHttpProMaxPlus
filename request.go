@@ -33,43 +33,43 @@ func (hm HttpMethod) String() string {
 // HttpRequest
 // Forms > Json > Xml > File > ReaderBody
 type HttpRequest struct {
-	Method     HttpMethod
+	Method HttpMethod
 
 	// Queries will overwrite the queries in the URL
 	// Queries 会覆盖 URL 中的参数
-	URL        string
+	URL string
 
-	Cookies    map[string]string
-	Headers    map[string]string
+	Cookies map[string]string
+	Headers map[string]string
 
 	// Queries will overwrite the queries in the URL
 	// Queries 会覆盖 URL 中的参数
-	Queries    map[string]string
+	Queries map[string]string
 
 	// When creating the HttpRequest, we have already added "Content-Type: application/x-www-form-urlencoded" for you .
 	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type: application/x-www-form-urlencoded
 	// If you want to modify, please add "Content-Type" sauce to the Headers
 	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
 	// The HTTP client ignores Form and uses Body instead.
-	Forms      map[string]string
+	Forms map[string]string
 
 	// When creating the HttpRequest, we have already added "Content-Type: application/json" for you .
 	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type
 	// If you want to modify, please add "Content-Type" sauce to the Headers
 	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
-	Json       *string
+	Json *string
 
 	// When creating the HttpRequest, we have already added "Content-Type: text/xml" for you .
 	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type: application/x-www-form-urlencoded
 	// If you want to modify, please add "Content-Type" sauce to the Headers
 	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
-	Xml        *string
+	Xml *string
 
 	// When creating the HttpRequest, we have already added "Content-Type: multipart/form-data" for you .
 	// 在创建 HttpRequest 的时候，我们已经帮你加好了 Content-Type
 	// If you want to modify, please add "Content-Type: " sauce to the Headers
 	// 如果你想修改的话，请在 Headers 中加入“Content-Type”
-	File       *os.File
+	File *os.File
 
 	// Please add "Content-Type" sauce to the Headers
 	// 请在 Headers 中加入“Content-Type”
@@ -272,31 +272,31 @@ func (hr *HttpRequest) BuildRequest() (*http.Request, error) {
 
 	// create body
 	var body io.Reader
-	if hr.Forms != nil {
+	if len(hr.Forms) != 0 {
 		body = strings.NewReader(parseParams(hr.Forms))
 
-		if  _, ok := hr.Headers["Content-Type"]; !ok {
+		if _, ok := hr.Headers["Content-Type"]; !ok {
 			hr.Headers["Content-Type"] = "application/x-www-form-urlencoded"
 		}
 
 	} else if hr.Json != nil {
 		body = strings.NewReader(*hr.Json)
 
-		if  _, ok := hr.Headers["Content-Type"]; !ok {
+		if _, ok := hr.Headers["Content-Type"]; !ok {
 			hr.Headers["Content-Type"] = "application/json"
 		}
 
 	} else if hr.Xml != nil {
 		body = strings.NewReader(*hr.Xml)
 
-		if  _, ok := hr.Headers["Content-Type"]; !ok {
+		if _, ok := hr.Headers["Content-Type"]; !ok {
 			hr.Headers["Content-Type"] = "text/xml"
 		}
 
 	} else if hr.File != nil {
 		body = hr.File
 
-		if  _, ok := hr.Headers["Content-Type"]; !ok {
+		if _, ok := hr.Headers["Content-Type"]; !ok {
 			hr.Headers["Content-Type"] = "multipart/form-data"
 		}
 
