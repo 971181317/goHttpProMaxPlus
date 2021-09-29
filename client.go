@@ -125,7 +125,9 @@ func NewClient(client *http.Client) *HttpClient {
 func NewClientX(client *http.Client,
 	beforeClientBuild, afterClientBuild, beforeRequestBuild, afterRequestBuild, afterResponseCreate AspectModel,
 	args ...interface{}) *HttpClient {
-	beforeRequestBuild(nil, nil, args)
+	if beforeRequestBuild != nil {
+		beforeRequestBuild(nil, nil, args)
+	}
 
 	hc := &HttpClient{
 		c:                   client,
@@ -136,8 +138,9 @@ func NewClientX(client *http.Client,
 		AfterResponseCreate: afterResponseCreate,
 		AspectArgs:          args,
 	}
-
-	afterRequestBuild(nil, nil, args)
+	if afterRequestBuild != nil {
+		afterRequestBuild(nil, nil, args)
+	}
 
 	return hc
 }
