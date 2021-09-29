@@ -71,14 +71,19 @@ func (client HttpClient) PostWithCookieHeaderAndIoData(url string, cookie, heade
 
 // Do run with Aspect
 func (client HttpClient) Do(req *HttpRequest) (*HttpResponse, error) {
-	client.BeforeRequestBuild(req, nil, client.AspectArgs)
+	if client.BeforeRequestBuild != nil {
+		client.BeforeRequestBuild(req, nil, client.AspectArgs)
+	}
 
 	_req, err := req.BuildRequest()
 	if err != nil {
 		return nil, err
 	}
 
-	client.AfterRequestBuild(req, nil, client.AspectArgs)
+	if client.AfterClientBuild != nil {
+		client.AfterRequestBuild(req, nil, client.AspectArgs)
+	}
+
 
 	_resp, err := client.c.Do(_req)
 	if err != nil {
@@ -87,7 +92,9 @@ func (client HttpClient) Do(req *HttpRequest) (*HttpResponse, error) {
 
 	resp := CreateResponse(_resp)
 
-	client.AfterResponseCreate(req, resp, client.AspectArgs)
+	if client.AfterResponseCreate != nil {
+		client.AfterResponseCreate(req, resp, client.AspectArgs)
+	}
 
 	return resp, nil
 }
